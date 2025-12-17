@@ -1,0 +1,6 @@
+.env
+*.db
+*.sql.backup
+# JetBrains IDE
+.idea/
+*.iml
