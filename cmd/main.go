@@ -2,16 +2,14 @@ package main
 
 import (
 	"log"
-	"net/http"
+
+	"github.com/hardikm9850/GoChat/internal/app"
+	"github.com/hardikm9850/GoChat/internal/config"
 )
 
 func main() {
-	log.Println("Staring GoChat")
+	cfg := config.Load()
 
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("OK"))
-	})
-
-	// Program blocks here and waits for HTTP requests
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	application := app.NewApp(cfg)
+	log.Fatal(application.Router.Run(":" + cfg.ServerPort))
 }
