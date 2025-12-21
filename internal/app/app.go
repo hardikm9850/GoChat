@@ -12,7 +12,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/hardikm9850/GoChat/internal/auth/handler"
 	"github.com/hardikm9850/GoChat/internal/auth/repository/memory"
-	"github.com/hardikm9850/GoChat/internal/auth/service"
+	authservice "github.com/hardikm9850/GoChat/internal/auth/service"
+	contactservice "github.com/hardikm9850/GoChat/internal/contacts/service"
+	contacthandler "github.com/hardikm9850/GoChat/internal/contacts/handler"
 	"github.com/hardikm9850/GoChat/internal/config"
 	"github.com/hardikm9850/authkit/jwt"
 )
@@ -23,12 +25,17 @@ type App struct {
 
 func NewApp(cfg *config.Config) *App {
 	r := gin.Default()
-
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "GoChat backend running",
+			"version": "v1.0",
+		})
+	})
 	// --- Database setup ---
 	gormDB := db.Connect(cfg)
 
 	if err := db.Migrate(gormDB); err != nil {
-    	log.Fatal("DB migration failed:", err)
+		log.Fatal("DB migration failed:", err)
 	}
 
 	c := jwt.Config{
@@ -44,15 +51,19 @@ func NewApp(cfg *config.Config) *App {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	// --- Authentication ---
 	authRepo, err := buildUserRepository(*cfg, gormDB)
 	if err != nil {
 		log.Fatal("Failed to setup user repository")
 	}
-	authService := service.New(authRepo, jwtManager)
+	authService := authservice.New(authRepo, jwtManager)
 	authHandler := handler.New(authService)
 
-	registerRoutes(r, authHandler, &jwtManager)
+	// --- Contacts Sync ---
+	contactService := contactservice.New(authRepo)
+	contactsHandler := contacthandler.NewContactsHandler(contactService)
+
+	registerRoutes(r, &jwtManager, authHandler, contactsHandler)
 
 	return &App{
 		Router: r,

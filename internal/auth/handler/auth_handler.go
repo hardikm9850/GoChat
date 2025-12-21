@@ -52,7 +52,9 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusCreated)
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "User registered successfully",
+	})
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
@@ -77,4 +79,3 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		AccessToken: tokens.AccessToken,
 	})
 }
-

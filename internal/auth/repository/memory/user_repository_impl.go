@@ -32,31 +32,31 @@ func (r *UserRepo) Create(user domain.User) error {
     return nil
 }
 
-func (r *UserRepo) FindByMobile(mobile string) (*domain.User, error) {
+func (r *UserRepo) FindByMobile(mobile string) (domain.User, error) {
     r.mu.RLock()
     defer r.mu.RUnlock()
 
     id, ok := r.byMobile[mobile]
     if !ok {
-        return nil, errors.New("user not found")
+        return domain.User{}, errors.New("user not found")
     }
 
     user := r.users[id]
-    return &user, nil
+    return user, nil
 }
 
-func (r *UserRepo) FindByMobiles(mobile []string) (*[]domain.User, error) {
+func (r *UserRepo) FindByMobiles(mobile []string) ([]domain.User, error) {
     return nil, nil
 }
 
-func (r *UserRepo) FindByID(id string) (*domain.User, error) {
+func (r *UserRepo) FindByID(id string) (domain.User, error) {
     r.mu.RLock()
     defer r.mu.RUnlock()
 
     user, ok := r.users[id]
     if !ok {
-        return nil, errors.New("user not found")
+        return domain.User{}, errors.New("user not found")
     }
 
-    return &user, nil
+    return user, nil
 }

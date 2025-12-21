@@ -7,9 +7,9 @@ import (
 
 type UserRepository interface {
 	Create(user domain.User) error
-	FindByID(id string) (*domain.User, error)
-	FindByMobile(mobile string) (*domain.User, error)
-	FindByMobiles(mobile []string) (*[]domain.User, error)
+	FindByID(id string) (domain.User, error)
+	FindByMobile(mobile string) (domain.User, error)
+	FindByMobiles(mobile []string) ([]domain.User, error)
 }
 
 var (

@@ -34,33 +34,59 @@ func (r *UserRepository) Create(user domain.User) error {
     return nil
 }
 
-func (r *UserRepository) FindByID(id string) (*domain.User, error) {
+func (r *UserRepository) FindByID(id string) (domain.User, error) {
     var model UserModel
 
     err := r.db.First(&model, "id = ?", id).Error
     if err != nil {
         if errors.Is(err, gorm.ErrRecordNotFound) {
-            return nil, repository.ErrUserNotFound
+            return domain.User{}, repository.ErrUserNotFound
         }
-        return nil, err
+        return domain.User{}, err
     }
 
     return toDomainUser(model), nil
 }
-func (r *UserRepository) FindByMobile(mobile string) (*domain.User, error) {
+func (r *UserRepository) FindByMobile(mobile string) (domain.User, error) {
     var model UserModel
 
     err := r.db.Where("phone_number = ?", mobile).First(&model).Error
 
     if err != nil {
         if errors.Is(err, gorm.ErrRecordNotFound) {
-            return nil, repository.ErrUserNotFound
+            return domain.User{}, repository.ErrUserNotFound
         }
-        return nil, err
+        return domain.User{}, err
     }
     return toDomainUser(model), nil
 }
 
-func (r *UserRepository) FindByMobiles(mobile []string) (*[]domain.User, error) {
-    return nil, nil
+func (r *UserRepository) FindByMobiles(mobiles []string) ([]domain.User, error) {
+
+    if len(mobiles) == 0 {
+        return []domain.User{}, nil
+    }
+
+    var models []UserModel
+
+    err := r.db.
+        Where("phone_number IN ?", mobiles).
+        Find(&models).
+        Error
+
+    if err != nil {
+        return nil, err
+    }
+
+    // map DB models to domain entities
+    users := make([]domain.User, 0, len(models))
+    for _, m := range models {
+        users = append(users, domain.User{
+            ID:          m.ID,
+            PhoneNumber: m.PhoneNumber,
+            Name:        m.Name,
+        })
+    }
+
+    return users, nil
 }
