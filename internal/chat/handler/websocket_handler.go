@@ -76,7 +76,7 @@ func (h *WSHandler) HandleWebSocket(c *gin.Context) {
 // Identify sender (userID)
 // Call application logic
 func (h *WSHandler) readLoop(conn *websocket.Conn, userID string) {
-    conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+    _ = conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 
     for {
         var payload IncomingMessage
@@ -86,7 +86,7 @@ func (h *WSHandler) readLoop(conn *websocket.Conn, userID string) {
             return
         }
 
-        conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+        _ = conn.SetReadDeadline(time.Now().Add(60 * time.Second))
         h.handleIncomingMessage(conn, userID, payload)
     }
 }
@@ -96,7 +96,8 @@ func (h *WSHandler) handleIncomingMessage(
     userID string,
     payload IncomingMessage,
 ) {
-    log.Println("handleIncomingMessage invoked to Execute SMUC")
+    log.Printf("handleIncomingMessage invoked %s\n", userID)
+
     _, err := h.SendMessageUseCase.Execute(
         domain.UserID(userID),
         domain.ConversationID(payload.ConversationID),
@@ -110,5 +111,4 @@ func (h *WSHandler) handleIncomingMessage(
         })
         return
     }
-
 }

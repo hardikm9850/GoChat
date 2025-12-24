@@ -9,18 +9,6 @@ import (
 	"github.com/hardikm9850/GoChat/internal/chat/domain"
 )
 
-// ConnEvent represents a single WebSocket connection for a user.
-type ConnEvent struct {
-	UserID string
-	Conn   *websocket.Conn
-}
-
-// MessageEvent represents a message to be broadcast to one or more users.
-type MessageEvent struct {
-	Message    domain.Message
-	Recipients []string // list of userIDs to receive the message
-}
-
 // Hub manages all active WebSocket connections and routes messages.
 // Responsibilities:
 // 1. Track active connections per user (multiple connections per user allowed)

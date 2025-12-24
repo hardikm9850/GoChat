@@ -33,15 +33,17 @@ type App struct {
 func NewApp(cfg *config.Config) *App {
 	r := gin.Default()
 
-	chatHub := hub.NewHub()
-	go chatHub.Run()
 
 	// --- Database setup ---
 	gormDB := db.Connect(cfg)
-
 	if err := db.Migrate(gormDB); err != nil {
 		log.Fatal("DB migration failed:", err)
 	}
+
+	// --- Hub setup
+	chatHub := hub.NewHub()
+	go chatHub.Run()
+
 
 	// --- JWT Config ---
 	c := jwt.Config{

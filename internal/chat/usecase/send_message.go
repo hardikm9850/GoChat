@@ -4,13 +4,14 @@ import (
 	"errors"
 	"github.com/hardikm9850/GoChat/internal/chat/domain"
 	"github.com/hardikm9850/GoChat/internal/chat/repository"
+	"github.com/hardikm9850/GoChat/internal/chat/infrastructure"
 	"log"
 )
 
 type SendMessageUseCase struct {
 	ConversationRepo repository.ConversationRepository
 	MessageRepo      repository.MessageRepository
-	eventPublisher   EventPublisher // interface, not implementation
+	eventPublisher   infrastructure.EventPublisher
 }
 
 type SendMessageResult struct {
@@ -21,7 +22,7 @@ type SendMessageResult struct {
 func NewSendMessageUseCase(
 	conversationRepo repository.ConversationRepository,
 	messageRepo repository.MessageRepository,
-	eventPublisher EventPublisher,
+	eventPublisher infrastructure.EventPublisher,
 ) *SendMessageUseCase {
 	return &SendMessageUseCase{
 		ConversationRepo: conversationRepo,

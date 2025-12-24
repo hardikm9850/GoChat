@@ -10,7 +10,7 @@ type HubEventPublisher struct {
 	hub *hub.Hub
 }
 
-func NewHubEventPublisher(h *hub.Hub) *HubEventPublisher {
+func NewHubEventPublisher(h *hub.Hub) EventPublisher {
 	return &HubEventPublisher{hub: h}
 }
 
@@ -19,9 +19,10 @@ func (p *HubEventPublisher) Publish(event any) {
 	switch e := event.(type) {
 
 	case domain.MessageSentEvent:
-		p.hub.Broadcast <- hub.MessageEvent{
+		messageEvent := hub.MessageEvent{
 			Message:    e.Message,
 			Recipients: e.Recipients,
 		}
+		p.hub.Broadcast <- messageEvent
 	}
 }
