@@ -4,6 +4,11 @@ import (
 	"fmt"
 	"github.com/hardikm9850/GoChat/internal/auth/repository"
 	mysql "github.com/hardikm9850/GoChat/internal/auth/repository/database"
+	"github.com/hardikm9850/GoChat/internal/chat/domain"
+	chathandler "github.com/hardikm9850/GoChat/internal/chat/handler"
+	"github.com/hardikm9850/GoChat/internal/chat/infrastructure"
+	"github.com/hardikm9850/GoChat/internal/chat/usecase"
+	"github.com/hardikm9850/GoChat/internal/hub"
 	"github.com/hardikm9850/GoChat/internal/infra/db"
 	"gorm.io/gorm"
 	"log"
@@ -15,6 +20,8 @@ import (
 	authservice "github.com/hardikm9850/GoChat/internal/auth/service"
 	contactservice "github.com/hardikm9850/GoChat/internal/contacts/service"
 	contacthandler "github.com/hardikm9850/GoChat/internal/contacts/handler"
+	chatrepository "github.com/hardikm9850/GoChat/internal/chat/repository/memory"
+	chatmemory "github.com/hardikm9850/GoChat/internal/chat/repository/memory"
 	"github.com/hardikm9850/GoChat/internal/config"
 	"github.com/hardikm9850/authkit/jwt"
 )
@@ -25,12 +32,10 @@ type App struct {
 
 func NewApp(cfg *config.Config) *App {
 	r := gin.Default()
-	r.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "GoChat backend running",
-			"version": "v1.0",
-		})
-	})
+
+	chatHub := hub.NewHub()
+	go chatHub.Run()
+
 	// --- Database setup ---
 	gormDB := db.Connect(cfg)
 
@@ -38,6 +43,7 @@ func NewApp(cfg *config.Config) *App {
 		log.Fatal("DB migration failed:", err)
 	}
 
+	// --- JWT Config ---
 	c := jwt.Config{
 		Algorithm:      jwt.HS256,
 		Secret:         cfg.JWTSecret,
@@ -51,6 +57,7 @@ func NewApp(cfg *config.Config) *App {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	// --- Authentication ---
 	authRepo, err := buildUserRepository(*cfg, gormDB)
 	if err != nil {
@@ -63,7 +70,25 @@ func NewApp(cfg *config.Config) *App {
 	contactService := contactservice.New(authRepo)
 	contactsHandler := contacthandler.NewContactsHandler(contactService)
 
-	registerRoutes(r, &jwtManager, authHandler, contactsHandler)
+	// --- Chat ---
+	conversationRepo := chatrepository.New()
+	conversationRepo.Create(domain.Conversation{
+		ID: "conv-123", // arbitrary conversation ID
+		Participants: []domain.UserID{
+			"df04edf7-8e4a-41f6-a042-7cea242a97e1", // user 1
+			"c0b25eb0-2a12-49eb-918a-0f29f12d418a", // user 2
+		}, //
+	})
+
+	messageRepo := chatmemory.NewInMemoryMessageRepository()
+
+	eventPublisher := infrastructure.NewHubEventPublisher(chatHub)
+
+	sendMessageUseCase := usecase.NewSendMessageUseCase(conversationRepo, messageRepo, eventPublisher) // Application layer
+
+	socketHandler := chathandler.NewWSHandler(chatHub, sendMessageUseCase) // Transport layer
+
+	registerRoutes(r, &jwtManager, authHandler, contactsHandler, socketHandler)
 
 	return &App{
 		Router: r,

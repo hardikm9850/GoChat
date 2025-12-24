@@ -16,7 +16,7 @@ const (
 type MessageRepository interface {
 	// Save persists a message in a conversation.
 	// Returns ErrConversationNotFound if the conversation does not exist.
-	Save(message domain.Message) error
+	Save(senderID domain.UserID, conversationID domain.ConversationID, content string) (domain.Message, error)
 
 	// Find retrieves messages for a conversation.
 	//

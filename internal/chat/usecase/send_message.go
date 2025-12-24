@@ -2,17 +2,20 @@ package usecase
 
 import (
 	"errors"
-	"time"
-
-	"github.com/google/uuid"
 	"github.com/hardikm9850/GoChat/internal/chat/domain"
 	"github.com/hardikm9850/GoChat/internal/chat/repository"
+	"log"
 )
 
 type SendMessageUseCase struct {
-	conversationRepo repository.ConversationRepository
-	messageRepo      repository.MessageRepository
+	ConversationRepo repository.ConversationRepository
+	MessageRepo      repository.MessageRepository
 	eventPublisher   EventPublisher // interface, not implementation
+}
+
+type SendMessageResult struct {
+	Message    domain.Message
+	Recipients []string
 }
 
 func NewSendMessageUseCase(
@@ -21,8 +24,8 @@ func NewSendMessageUseCase(
 	eventPublisher EventPublisher,
 ) *SendMessageUseCase {
 	return &SendMessageUseCase{
-		conversationRepo: conversationRepo,
-		messageRepo:      messageRepo,
+		ConversationRepo: conversationRepo,
+		MessageRepo:      messageRepo,
 		eventPublisher:   eventPublisher,
 	}
 }
@@ -31,40 +34,47 @@ type MessageSentEvent struct {
 	Message domain.Message
 }
 
-func (uc *SendMessageUseCase) Execute(
+func (usecase *SendMessageUseCase) Execute(
 	senderID domain.UserID,
 	conversationID domain.ConversationID,
 	content string,
-) (domain.Message, error) {
+) (SendMessageResult, error) {
+	log.Println("SendMessageUC Execute called, message content:", content)
 
+	var emptySendMessageResult = SendMessageResult{}
+	// ip validation
 	if content == "" {
-		return domain.Message{}, errors.New("empty message content")
+		return emptySendMessageResult, errors.New("empty message content")
 	}
-
-	conversation, err := uc.conversationRepo.FindByID(conversationID)
+	//save message
+	message, err := usecase.MessageRepo.Save(
+		senderID, conversationID, content,
+	)
 	if err != nil {
-		return domain.Message{}, err
+		return SendMessageResult{}, err
+	}
+	// resolve recipients
+	participants, err := usecase.ConversationRepo.Participants(conversationID)
+	if err != nil {
+		return SendMessageResult{}, err
 	}
 
-	if !conversation.HasParticipant(senderID) {
-		return domain.Message{}, errors.New("sender not part of conversation")
+	recipients := make([]string, 0)
+	for _, p := range participants {
+		if p != senderID {
+			recipients = append(recipients, string(p))
+		}
+	}
+	log.Printf("SendMsg recipients count %d \n\n", len(recipients))
+	event := domain.MessageSentEvent{
+		Message:    message,
+		Recipients: recipients,
 	}
 
-	message := domain.Message{
-		ID:             domain.MessageID(uuid.NewString()),
-		ConversationID: conversationID,
-		SenderID:       senderID,
-		Content:        content,
-		CreatedAt:      time.Now().UTC(),
-	}
+	usecase.eventPublisher.Publish(event)
 
-	if err := uc.messageRepo.Save(message); err != nil {
-		return domain.Message{}, err
-	}
-
-	uc.eventPublisher.Publish(MessageSentEvent{
-		Message: message,
-	})
-
-	return message, nil
+	return SendMessageResult{
+		Message:    message,
+		Recipients: recipients,
+	}, nil
 }

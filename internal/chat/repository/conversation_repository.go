@@ -14,4 +14,6 @@ type ConversationRepository interface {
 	Find(
 		userA, userB domain.UserID,
 	) (*domain.Conversation, error)
+
+	Participants(conversationID domain.ConversationID) ([]domain.UserID, error)
 }
