@@ -16,7 +16,29 @@ GoChat is a mobile‑first real‑time chat backend built with **Go**. The proje
 * Mobile‑friendly API contracts (Android & iOS)
 
 ---
+## API Documentation (Swagger)
 
+GoChat exposes a fully documented REST API using **Swagger (OpenAPI)**.
+
+### Live Swagger UI
+The latest API documentation is available here:
+
+🔗 https://gochat-production-0f79.up.railway.app/swagger/index.html
+
+This UI provides:
+- Complete endpoint listings
+- Request/response schemas
+- Authentication details
+- Ability to try APIs directly from the browser
+
+### Local Access
+When running the server locally, Swagger UI is available at:
+http://localhost:8080/swagger/index.html
+
+
+> Note: The Swagger documentation is generated from code annotations and always reflects the current API implementation.
+
+--- 
 ## Architecture Overview
 
 GoChat follows **Clean Architecture**, ensuring that business logic is independent of frameworks, databases, and delivery mechanisms.
@@ -109,6 +131,7 @@ The backend API contracts are designed to support both platforms consistently.
 * **Auth**: JWT
 * **Real‑time**: WebSockets
 * **Deployment**: Railway
+* **swaggo/swag** Swagger Docs
 
 ---
 
