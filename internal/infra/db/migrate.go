@@ -1,13 +1,13 @@
 package db
 
 import (
-    "gorm.io/gorm"
+	"gorm.io/gorm"
 
-    authmysql "github.com/hardikm9850/GoChat/internal/auth/repository/database"
+	authmysql "github.com/hardikm9850/GoChat/internal/auth/repository/database"
 )
 
 func Migrate(db *gorm.DB) error {
-    return db.AutoMigrate(
-        &authmysql.UserModel{},
-    )
+	return db.AutoMigrate(
+		&authmysql.UserModel{},
+	)
 }

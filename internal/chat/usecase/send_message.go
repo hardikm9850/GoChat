@@ -3,8 +3,8 @@ package usecase
 import (
 	"errors"
 	"github.com/hardikm9850/GoChat/internal/chat/domain"
-	"github.com/hardikm9850/GoChat/internal/chat/repository"
 	"github.com/hardikm9850/GoChat/internal/chat/infrastructure"
+	"github.com/hardikm9850/GoChat/internal/chat/repository"
 	"log"
 )
 

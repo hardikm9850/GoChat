@@ -155,7 +155,6 @@ func (r *ConversationRepositoryMySQL) Participants(
 	return users, nil
 }
 
-
 func mapToDomain(c Conversation) domain.Conversation {
 	var participants []domain.UserID
 	for _, p := range c.Participants {
