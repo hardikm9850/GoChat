@@ -30,11 +30,11 @@ func Load() *Config {
 	log.Println("loading config...")
 	cfg := &Config{
 		ServerPort:     getEnv("PORT", "8080"),
-		DBHost:         getEnv("DB_HOST", "127.0.0.1"),
-		DBPort:         getEnv("DB_PORT", "3306"),
-		DBUser:         getEnv("DB_USER", "chat"),
-		DBPassword:     getEnv("DB_PASSWORD", "chat"),
-		DBName:         getEnv("DB_NAME", "chatapp"),
+		DBHost:         getEnv("MYSQLHOST", "127.0.0.1"),
+		DBPort:         getEnv("MYSQLPORT", "3306"),
+		DBUser:         getEnv("MYSQLUSER", "chat"),
+		DBPassword:     getEnv("MYSQLPASSWORD", "chat"),
+		DBName:         getEnv("MYSQL_DATABASE", "chatapp"),
 		JWTSecret:      getEnv("JWT_SECRET", "dev-secret"),
 		Issuer:         getEnv("ISSUER", "go-chat"),
 		AccessTokenTTL: 30 * time.Minute,
