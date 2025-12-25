@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"os"
 	"time"
 )
@@ -26,8 +27,9 @@ type Config struct {
 }
 
 func Load() *Config {
+	log.Println("loading config...")
 	cfg := &Config{
-		ServerPort:     getEnv("SERVER_PORT", "8080"),
+		ServerPort:     getEnv("PORT", "8080"),
 		DBHost:         getEnv("DB_HOST", "127.0.0.1"),
 		DBPort:         getEnv("DB_PORT", "3306"),
 		DBUser:         getEnv("DB_USER", "chat"),
@@ -38,7 +40,9 @@ func Load() *Config {
 		AccessTokenTTL: 30 * time.Minute,
 		UserRepoType:   MySQL,
 	}
-
+	log.Printf("PORT=%s\n", cfg.ServerPort)
+	log.Printf("DB_HOST=%s DB_PORT=%s DB_NAME=%s DB_USER=%s\n",
+		cfg.DBHost, cfg.DBPort, cfg.DBName, cfg.DBUser)
 	return cfg
 }
 
