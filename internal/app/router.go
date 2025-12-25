@@ -12,9 +12,10 @@ import (
 func registerRoutes(
 	r *gin.Engine,
 	jwtManager *jwt.Manager,
+	wsHandler *handler2.WSHandler,
 	authHandler *handler.AuthHandler,
 	contactsHandler *http.ContactsHandler,
-	wsHandler *handler2.WSHandler,
+	conversationHandler handler2.ConversationHandler,
 ) {
 
 	// Group creates a new router group. We should add all the routes that have common middlewares or the same path prefix.
@@ -56,6 +57,11 @@ func registerRoutes(
 			})
 
 			v1.POST("/contacts/sync", contactsHandler.SyncContacts)
+
+			// -------- CONVERSATIONS --------
+			v1.POST("/conversations", conversationHandler.CreateConversation)
+			v1.GET("/conversations", conversationHandler.GetMyConversations)
+			v1.GET("/conversations/:id", conversationHandler.GetConversation)
 		}
 	}
 }

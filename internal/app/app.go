@@ -20,7 +20,7 @@ import (
 	authservice "github.com/hardikm9850/GoChat/internal/auth/service"
 	contactservice "github.com/hardikm9850/GoChat/internal/contacts/service"
 	contacthandler "github.com/hardikm9850/GoChat/internal/contacts/handler"
-	chatrepository "github.com/hardikm9850/GoChat/internal/chat/repository/memory"
+	chatrepodb "github.com/hardikm9850/GoChat/internal/chat/repository/database"
 	chatmemory "github.com/hardikm9850/GoChat/internal/chat/repository/memory"
 	"github.com/hardikm9850/GoChat/internal/config"
 	"github.com/hardikm9850/authkit/jwt"
@@ -33,7 +33,6 @@ type App struct {
 func NewApp(cfg *config.Config) *App {
 	r := gin.Default()
 
-
 	// --- Database setup ---
 	gormDB := db.Connect(cfg)
 	if err := db.Migrate(gormDB); err != nil {
@@ -43,7 +42,6 @@ func NewApp(cfg *config.Config) *App {
 	// --- Hub setup
 	chatHub := hub.NewHub()
 	go chatHub.Run()
-
 
 	// --- JWT Config ---
 	c := jwt.Config{
@@ -73,7 +71,7 @@ func NewApp(cfg *config.Config) *App {
 	contactsHandler := contacthandler.NewContactsHandler(contactService)
 
 	// --- Chat ---
-	conversationRepo := chatrepository.New()
+	conversationRepo := chatrepodb.New(gormDB)
 	conversationRepo.Create(domain.Conversation{
 		ID: "conv-123", // arbitrary conversation ID
 		Participants: []domain.UserID{
@@ -81,7 +79,7 @@ func NewApp(cfg *config.Config) *App {
 			"c0b25eb0-2a12-49eb-918a-0f29f12d418a", // user 2
 		}, //
 	})
-
+	conversationUseCase := usecase.New(conversationRepo)
 	messageRepo := chatmemory.NewInMemoryMessageRepository()
 
 	eventPublisher := infrastructure.NewHubEventPublisher(chatHub)
@@ -89,8 +87,10 @@ func NewApp(cfg *config.Config) *App {
 	sendMessageUseCase := usecase.NewSendMessageUseCase(conversationRepo, messageRepo, eventPublisher) // Application layer
 
 	socketHandler := chathandler.NewWSHandler(chatHub, sendMessageUseCase) // Transport layer
+	// TODO create conversation handler, repo, use case
+	conversationHandler := chathandler.NewConversationHandler(conversationRepo, conversationUseCase)
 
-	registerRoutes(r, &jwtManager, authHandler, contactsHandler, socketHandler)
+	registerRoutes(r, &jwtManager, socketHandler, authHandler, contactsHandler, *conversationHandler)
 
 	return &App{
 		Router: r,
