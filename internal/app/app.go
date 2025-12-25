@@ -18,11 +18,11 @@ import (
 	"github.com/hardikm9850/GoChat/internal/auth/handler"
 	"github.com/hardikm9850/GoChat/internal/auth/repository/memory"
 	authservice "github.com/hardikm9850/GoChat/internal/auth/service"
-	contactservice "github.com/hardikm9850/GoChat/internal/contacts/service"
-	contacthandler "github.com/hardikm9850/GoChat/internal/contacts/handler"
 	chatrepodb "github.com/hardikm9850/GoChat/internal/chat/repository/database"
 	chatmemory "github.com/hardikm9850/GoChat/internal/chat/repository/memory"
 	"github.com/hardikm9850/GoChat/internal/config"
+	contacthandler "github.com/hardikm9850/GoChat/internal/contacts/handler"
+	contactservice "github.com/hardikm9850/GoChat/internal/contacts/service"
 	"github.com/hardikm9850/authkit/jwt"
 )
 

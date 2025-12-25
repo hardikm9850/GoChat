@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	_ "github.com/hardikm9850/GoChat/docs"
 	"github.com/hardikm9850/GoChat/internal/app"
 	"github.com/hardikm9850/GoChat/internal/config"
 	_ "github.com/swaggo/gin-swagger" // gin-swagger middleware
-	_ "github.com/hardikm9850/GoChat/docs"
 )
 
 // @title GoChat API
