@@ -31,8 +31,10 @@ type App struct {
 }
 
 func NewApp(cfg *config.Config) *App {
+	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
-
+	r.Use(gin.Logger(), gin.Recovery())
+	
 	// --- Database setup ---
 	gormDB := db.Connect(cfg)
 	if err := db.Migrate(gormDB); err != nil {

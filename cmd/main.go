@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	_ "github.com/hardikm9850/GoChat/docs"
@@ -16,6 +17,13 @@ import (
 // @host localhost:8080
 // @BasePath /api/v1
 func main() {
+	log.SetOutput(os.Stdout)
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	log.Println("MAIN STARTED")
+	log.Println("PORT =", os.Getenv("PORT"))
+	log.Println("ENV =", os.Environ())
+
 	cfg := config.Load()
 	a := app.NewApp(cfg)
 
