@@ -34,6 +34,19 @@ type loginResponse struct {
 	AccessToken string `json:"access_token"`
 }
 
+// @BasePath /api/v1
+
+// @Summary Register a new user
+// @Description Registers a new user with phone, password, and name
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param registerRequest body registerRequest true "Register Request"
+// @Success 201 {object} map[string]string "User registered successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 409 {object} map[string]string "User already exists"
+// @Failure 500 {object} map[string]string "Registration failed"
+// @Router /auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	log.Println("Http 👉 /auth/register hit")
 	var req registerRequest
@@ -57,6 +70,17 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	})
 }
 
+// @Summary Login user
+// @Description Login user with phone and password
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param loginRequest body loginRequest true "Login Request"
+// @Success 200 {object} loginResponse "Access token returned"
+// @Failure 400 {object} map[string]string "Validation error"
+// @Failure 401 {object} map[string]string "Invalid credentials"
+// @Failure 500 {object} map[string]string "Login failed"
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req loginRequest
 

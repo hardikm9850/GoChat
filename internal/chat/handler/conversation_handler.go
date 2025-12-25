@@ -8,23 +8,35 @@ import (
 	"net/http"
 )
 
+func NewConversationHandler(repo repository.ConversationRepository, createConversation usecase.CreateConversation) *ConversationHandler {
+	return &ConversationHandler{conversationRepository: repo, conversationUseCase: createConversation}
+}
+
 type ConversationHandler struct {
 	conversationRepository repository.ConversationRepository
 	conversationUseCase    usecase.CreateConversation
 }
 
-func NewConversationHandler(repo repository.ConversationRepository, createConversation usecase.CreateConversation) *ConversationHandler {
-	return &ConversationHandler{conversationRepository: repo, conversationUseCase: createConversation}
-}
-
 type CreateConversationRequest struct {
-	ParticipantID string `json:"participant_id" binding:"required"`
+	ParticipantID string `json:"participant_id" binding:"required" example:"user_123"`
 }
 
 type ErrorResponse struct {
-	Error string `json:"error"`
+	Error string `json:"error" example:"unauthorized"`
 }
 
+// @Summary Create a conversation
+// @Description Creates a conversation between the authenticated user and another participant.
+// @Tags Conversations
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param request body CreateConversationRequest true "Create Conversation Request"
+// @Success 200 {object} usecase.ConversationResponse "Conversation created or already exists"
+// @Failure 400 {object} ErrorResponse "Invalid request or cannot create conversation with yourself"
+// @Failure 401 {object} ErrorResponse "Unauthorized"
+// @Failure 404 {object} ErrorResponse "Conversation not found or creation failed"
+// @Router /conversations [post]
 func (h *ConversationHandler) CreateConversation(c *gin.Context) {
 	currentUserID := c.GetString("userID")
 
@@ -73,6 +85,16 @@ func (h *ConversationHandler) CreateConversation(c *gin.Context) {
 }
 
 // GetConversation retrieves a specific conversation
+// @Summary Retrieves a specific conversation
+// @Description Retrieves a specific conversation by ID for the authenticated user.
+// @Tags Conversations
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param id path string true "Conversation ID"
+// @Success 200 {object} usecase.ConversationResponse "Conversation retrieved successfully"
+// @Failure 401 {object} ErrorResponse "Unauthorized"
+// @Failure 404 {object} ErrorResponse "Conversation not found"
+// @Router /conversations/{id} [get]
 func (h *ConversationHandler) GetConversation(c *gin.Context) {
 	currentUserID := c.GetString("userID")
 	conversationID := c.Param("id")
@@ -93,6 +115,15 @@ func (h *ConversationHandler) GetConversation(c *gin.Context) {
 	})
 }
 
+// @Summary Get my conversations
+// @Description Retrieves all conversations for the authenticated user.
+// @Tags Conversations
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} map[string][]usecase.ConversationResponse "List of conversations"
+// @Failure 401 {object} ErrorResponse "Unauthorized"
+// @Failure 500 {object} ErrorResponse "Failed to retrieve conversations"
+// @Router /conversations [get]
 func (h *ConversationHandler) GetMyConversations(c *gin.Context) {
 	currentUserID := c.GetString("userID")
 	conversation, err := h.conversationUseCase.FindAllConversation(currentUserID)

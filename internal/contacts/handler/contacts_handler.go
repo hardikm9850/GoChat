@@ -17,6 +17,16 @@ func NewContactsHandler(contactService service.ContactService) *ContactsHandler 
 	}
 }
 
+// @Summary Sync contacts
+// @Description Syncs a list of phone numbers with the server
+// @Tags Sync contacts
+// @Accept json
+// @Produce json
+// @Param request body SyncContactsRequest true "Sync Contacts Request"
+// @Success 200 {array} string "List of synced contacts"
+// @Failure 400 {object} map[string]string "Invalid request body"
+// @Failure 500 {object} map[string]string "Failed to sync contacts"
+// @Router /contacts/sync [post]
 func (h *ContactsHandler) SyncContacts(c *gin.Context) {
 	var req SyncContactsRequest
 
