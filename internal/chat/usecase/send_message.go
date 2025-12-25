@@ -40,7 +40,7 @@ func (usecase *SendMessageUseCase) Execute(
 	conversationID domain.ConversationID,
 	content string,
 ) (SendMessageResult, error) {
-	log.Println("SendMessageUC Execute called, message content:", content)
+	log.Println("SendMessageUC CreateConversation called, message content:", content)
 
 	var emptySendMessageResult = SendMessageResult{}
 	// ip validation

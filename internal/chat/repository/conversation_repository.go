@@ -9,11 +9,16 @@ type ConversationRepository interface {
 
 	FindByID(
 		conversationID domain.ConversationID,
-	) (*domain.Conversation, error)
+		userID domain.UserID,
+	) (domain.Conversation, error)
 
 	Find(
 		userA, userB domain.UserID,
-	) (*domain.Conversation, error)
+	) (domain.Conversation, error)
+
+	FindMyConversation(
+		userA domain.UserID,
+	) ([]domain.Conversation, error)
 
 	Participants(conversationID domain.ConversationID) ([]domain.UserID, error)
 }
