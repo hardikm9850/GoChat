@@ -7,6 +7,8 @@ import (
 	http "github.com/hardikm9850/GoChat/internal/contacts/handler"
 	"github.com/hardikm9850/authkit/jwt"
 	"github.com/hardikm9850/authkit/middleware"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func registerRoutes(
@@ -27,6 +29,8 @@ func registerRoutes(
 			"version": "v1.0",
 		})
 	})
+	// swag init -g cmd/main.go --output ./docs
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// -------- AUTH --------
 	auth := r.Group("/auth")

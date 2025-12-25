@@ -38,6 +38,14 @@ func NewWSHandler(h *hub.Hub, uc *usecase.SendMessageUseCase) *WSHandler {
     }
 }
 
+// @Summary WebSocket connection
+// @Description Establishes a WebSocket connection for real-time messaging.
+// @Tags WebSocket
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Success 101 {string} string "Switching Protocols"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Router /ws [get]
 func (h *WSHandler) HandleWebSocket(c *gin.Context) {
     userID := c.GetString("userID")
     log.Println("Control received in HandleWebSocket")

@@ -1,0 +1,293 @@
+basePath: /api/v1
+definitions:
+  handler.CreateConversationRequest:
+    properties:
+      participant_id:
+        example: user_123
+        type: string
+    required:
+    - participant_id
+    type: object
+  handler.ErrorResponse:
+    properties:
+      error:
+        example: unauthorized
+        type: string
+    type: object
+  handler.loginRequest:
+    properties:
+      password:
+        type: string
+      phone:
+        type: string
+    required:
+    - password
+    - phone
+    type: object
+  handler.loginResponse:
+    properties:
+      access_token:
+        type: string
+    type: object
+  handler.registerRequest:
+    properties:
+      name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      phone:
+        type: string
+    required:
+    - name
+    - password
+    - phone
+    type: object
+  http.SyncContactsRequest:
+    properties:
+      phones:
+        items:
+          type: string
+        type: array
+    required:
+    - phones
+    type: object
+  usecase.ConversationResponse:
+    properties:
+      conversation_id:
+        type: string
+      created_at:
+        type: string
+      participants:
+        items:
+          type: string
+        type: array
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Chat backend service
+  title: GoChat API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login user with phone and password
+      parameters:
+      - description: Login Request
+        in: body
+        name: loginRequest
+        required: true
+        schema:
+          $ref: '#/definitions/handler.loginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Access token returned
+          schema:
+            $ref: '#/definitions/handler.loginResponse'
+        "400":
+          description: Validation error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Invalid credentials
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Login failed
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login user
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Registers a new user with phone, password, and name
+      parameters:
+      - description: Register Request
+        in: body
+        name: registerRequest
+        required: true
+        schema:
+          $ref: '#/definitions/handler.registerRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User registered successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: User already exists
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Registration failed
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register a new user
+      tags:
+      - Auth
+  /contacts/sync:
+    post:
+      consumes:
+      - application/json
+      description: Syncs a list of phone numbers with the server
+      parameters:
+      - description: Sync Contacts Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/http.SyncContactsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of synced contacts
+          schema:
+            items:
+              type: string
+            type: array
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to sync contacts
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Sync contacts
+      tags:
+      - Sync contacts
+  /conversations:
+    get:
+      description: Retrieves all conversations for the authenticated user.
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of conversations
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/usecase.ConversationResponse'
+              type: array
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Failed to retrieve conversations
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Get my conversations
+      tags:
+      - Conversations
+    post:
+      consumes:
+      - application/json
+      description: Creates a conversation between the authenticated user and another
+        participant.
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Create Conversation Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreateConversationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Conversation created or already exists
+          schema:
+            $ref: '#/definitions/usecase.ConversationResponse'
+        "400":
+          description: Invalid request or cannot create conversation with yourself
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: Conversation not found or creation failed
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Create a conversation
+      tags:
+      - Conversations
+  /conversations/{id}:
+    get:
+      description: Retrieves a specific conversation by ID for the authenticated user.
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Conversation retrieved successfully
+          schema:
+            $ref: '#/definitions/usecase.ConversationResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: Conversation not found
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Retrieves a specific conversation
+      tags:
+      - Conversations
+swagger: "2.0"
