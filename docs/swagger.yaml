@@ -28,6 +28,22 @@ definitions:
     properties:
       access_token:
         type: string
+      refresh_token:
+        type: string
+    type: object
+  handler.refreshRequest:
+    properties:
+      refreshToken:
+        type: string
+    required:
+    - refreshToken
+    type: object
+  handler.refreshResponse:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
     type: object
   handler.registerRequest:
     properties:
@@ -150,6 +166,73 @@ paths:
               type: string
             type: object
       summary: Register a new user
+      tags:
+      - Auth
+  /auth/v1/logout:
+    post:
+      description: Invalidates the refresh token for the logged-in user
+      responses:
+        "200":
+          description: logged out successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: failed to logout
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Logout user
+      tags:
+      - Auth
+  /auth/v1/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Rotates refresh token and issues a new access token
+      parameters:
+      - description: Refresh token payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.refreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.refreshResponse'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Invalid / expired / reused refresh token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Refresh access token
       tags:
       - Auth
   /contacts/sync:
@@ -290,4 +373,29 @@ paths:
       summary: Retrieves a specific conversation
       tags:
       - Conversations
+  /ws:
+    get:
+      description: Establishes a WebSocket connection for real-time messaging.
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "101":
+          description: Switching Protocols
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: WebSocket connection
+      tags:
+      - WebSocket
 swagger: "2.0"
