@@ -2,8 +2,11 @@ package handler
 
 import (
 	"github.com/hardikm9850/GoChat/internal/chat/handler/http/dto"
+	"github.com/hardikm9850/GoChat/internal/chat/repository"
 	"log"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/hardikm9850/GoChat/internal/chat/domain"
@@ -11,22 +14,25 @@ import (
 	"github.com/hardikm9850/GoChat/internal/hub"
 )
 
-type MessageHandler struct {
-	SendMessageUC *usecase.SendMessageUseCase
-	Hub           *hub.Hub
+type MessagesHandler struct {
+	SendMessageUC     *usecase.SendMessageUseCase
+	GetMessageUseCase *usecase.GetMessagesUseCase
+	Hub               *hub.Hub
 }
 
 func NewMessageHandler(
-	uc *usecase.SendMessageUseCase,
+	sendMessageUseCase *usecase.SendMessageUseCase,
+	getMessageUseCase *usecase.GetMessagesUseCase,
 	h *hub.Hub,
-) *MessageHandler {
-	return &MessageHandler{
-		SendMessageUC: uc,
-		Hub:           h,
+) *MessagesHandler {
+	return &MessagesHandler{
+		SendMessageUC:     sendMessageUseCase,
+		GetMessageUseCase: getMessageUseCase,
+		Hub:               h,
 	}
 }
 
-func (h *MessageHandler) SendMessage(c *gin.Context) {
+func (h *MessagesHandler) SendMessage(c *gin.Context) {
 	var req dto.SendMessageRequest
 	log.Println("Message handler SendMessage invoked")
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -57,4 +63,41 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 		MessageID:  string(result.Message.ID),
 		Recipients: result.Recipients,
 	})
+}
+
+func (h *MessagesHandler) GetMessages(c *gin.Context) {
+	conversationID := domain.ConversationID(c.Param("id"))
+
+	limitStr := c.DefaultQuery("limit", "50")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 50
+	}
+
+	afterStr := c.Query("after")
+	var after *time.Time
+	if afterStr != "" {
+		t, err := time.Parse(time.RFC3339, afterStr)
+		if err == nil {
+			after = &t
+		}
+	}
+
+	orderStr := c.DefaultQuery("order", "desc")
+	order := repository.OrderDesc
+	if orderStr == "asc" {
+		order = repository.OrderAsc
+	}
+
+	messages, err := h.GetMessageUseCase.Execute(conversationID, limit, after, order)
+	if err != nil {
+		if err == domain.ErrConversationNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "conversation not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, messages)
 }
