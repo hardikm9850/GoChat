@@ -45,11 +45,13 @@ func NewApp(cfg *config.Config) *App {
 
 	// --- JWT Config ---
 	c := jwt.Config{
-		Algorithm:      jwt.HS256,
-		Secret:         cfg.JWTSecret,
-		Issuer:         "authkit",
-		Audience:       "authkit",
-		AccessTokenTTL: time.Hour * 24 * 7,
+		Algorithm:       jwt.HS256,
+		AccessSecret:    cfg.JWTAccessSecret,
+		RefreshSecret:   cfg.JWTRefreshSecret,
+		Issuer:          "authkit",
+		Audience:        "authkit",
+		AccessTokenTTL:  24 * time.Hour * 7,  // 7 days
+		RefreshTokenTTL: 24 * time.Hour * 30, // 30 days
 	}
 
 	// --- Auth wiring ---
@@ -63,7 +65,9 @@ func NewApp(cfg *config.Config) *App {
 	if err != nil {
 		log.Fatal("Failed to setup user repository")
 	}
-	authService := authservice.New(authRepo, jwtManager)
+	refreshRepo := mysql.NewMySQLRefreshTokenRepo(gormDB)
+
+	authService := authservice.New(authRepo, refreshRepo, jwtManager)
 	authHandler := handler.New(authService)
 
 	// --- Contacts Sync ---

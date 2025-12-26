@@ -20,4 +20,3 @@ type Message struct {
 func NewMessageID() MessageID {
 	return MessageID(uuid.NewString())
 }
-
