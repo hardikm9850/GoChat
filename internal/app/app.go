@@ -19,7 +19,7 @@ import (
 	"github.com/hardikm9850/GoChat/internal/auth/repository/memory"
 	authservice "github.com/hardikm9850/GoChat/internal/auth/service"
 	chatrepodb "github.com/hardikm9850/GoChat/internal/chat/repository/database"
-	chatmemory "github.com/hardikm9850/GoChat/internal/chat/repository/memory"
+	messagedb "github.com/hardikm9850/GoChat/internal/chat/repository/database"
 	"github.com/hardikm9850/GoChat/internal/config"
 	contacthandler "github.com/hardikm9850/GoChat/internal/contacts/handler"
 	contactservice "github.com/hardikm9850/GoChat/internal/contacts/service"
@@ -80,17 +80,19 @@ func NewApp(cfg *config.Config) *App {
 		}, //
 	})
 	conversationUseCase := usecase.New(conversationRepo)
-	messageRepo := chatmemory.NewInMemoryMessageRepository()
+	messageRepo := messagedb.NewMessageRepo(gormDB)
 
 	eventPublisher := infrastructure.NewHubEventPublisher(chatHub)
 
 	sendMessageUseCase := usecase.NewSendMessageUseCase(conversationRepo, messageRepo, eventPublisher) // Application layer
 
 	socketHandler := chathandler.NewWSHandler(chatHub, sendMessageUseCase) // Transport layer
-	// TODO create conversation handler, repo, use case
-	conversationHandler := chathandler.NewConversationHandler(conversationRepo, conversationUseCase)
 
-	registerRoutes(r, &jwtManager, socketHandler, authHandler, contactsHandler, *conversationHandler)
+	conversationHandler := chathandler.NewConversationHandler(conversationRepo, conversationUseCase)
+	getMessageUseCase := usecase.NewGetMessagesUseCase(messageRepo)
+	messagesHandler := chathandler.NewMessageHandler(sendMessageUseCase, getMessageUseCase, chatHub)
+
+	registerRoutes(r, &jwtManager, socketHandler, authHandler, contactsHandler, conversationHandler, messagesHandler)
 
 	return &App{
 		Router: r,

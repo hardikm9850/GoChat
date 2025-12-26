@@ -17,7 +17,8 @@ func registerRoutes(
 	wsHandler *handler2.WSHandler,
 	authHandler *handler.AuthHandler,
 	contactsHandler *http.ContactsHandler,
-	conversationHandler handler2.ConversationHandler,
+	conversationHandler *handler2.ConversationHandler,
+	messagesHandler *handler2.MessagesHandler,
 ) {
 
 	// Group creates a new router group. We should add all the routes that have common middlewares or the same path prefix.
@@ -71,6 +72,7 @@ func registerRoutes(
 			v1.POST("/conversations", conversationHandler.CreateConversation)
 			v1.GET("/conversations", conversationHandler.GetMyConversations)
 			v1.GET("/conversations/:id", conversationHandler.GetConversation)
+			r.GET("/conversations/:id/messages", messagesHandler.GetMessages)
 		}
 	}
 }
