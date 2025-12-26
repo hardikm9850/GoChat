@@ -13,7 +13,7 @@ import (
 
 func registerRoutes(
 	r *gin.Engine,
-	jwtManager *jwt.Manager,
+	jwtManager *jwt.HS256Manager,
 	wsHandler *handler2.WSHandler,
 	authHandler *handler.AuthHandler,
 	contactsHandler *http.ContactsHandler,
@@ -45,6 +45,7 @@ func registerRoutes(
 		{
 			v1.POST("/register", authHandler.Register)
 			v1.POST("/login", authHandler.Login)
+			v1.POST("/refresh", authHandler.Refresh)
 		}
 	}
 

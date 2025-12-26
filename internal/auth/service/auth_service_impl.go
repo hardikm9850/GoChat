@@ -8,38 +8,44 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	autherror "github.com/hardikm9850/GoChat/internal/auth"
+	auth "github.com/hardikm9850/GoChat/internal/auth"
 	"github.com/hardikm9850/GoChat/internal/auth/repository"
 	authkitjwt "github.com/hardikm9850/authkit/jwt"
 	authkitpassword "github.com/hardikm9850/authkit/password"
 )
 
 type authService struct {
-	userRepo repository.UserRepository
-	//refresh repository.RefreshTokenRepository
-	jwtManager authkitjwt.Manager
+	userRepo   repository.UserRepository
+	refresh    repository.RefreshTokenRepository
+	jwtManager authkitjwt.HS256Manager
+}
+
+func (s *authService) Logout(userID string) error {
+	return s.refresh.DeleteByUserID(userID)
 }
 
 func New(
 	userRepo repository.UserRepository,
-	//refresh repository.RefreshTokenRepository,
-	jwtManager authkitjwt.Manager,
+	refresh repository.RefreshTokenRepository,
+	jwtManager authkitjwt.HS256Manager,
 ) AuthService {
 	return &authService{
-		userRepo: userRepo,
-		//	refresh:    refresh,
+		userRepo:   userRepo,
+		refresh:    refresh,
 		jwtManager: jwtManager,
 	}
 }
 
 func (s *authService) Register(phone, password, name string) error {
-	log.Println("Service 👉 /auth/register hit")
-	if _, err := s.userRepo.FindByMobile(phone); err != nil {
-		if !errors.Is(err, repository.ErrUserNotFound) {
-			return autherror.ErrUserAlreadyExists
-		}
+	log.Println("Service /auth/register hit")
+
+	// check if user exists
+	_, err := s.userRepo.FindByMobile(phone)
+	if err == nil {
+		return auth.ErrUserAlreadyExists
 	}
 
+	// hash pwd
 	hashedPassword, err := authkitpassword.HashPassword(password)
 	if err != nil {
 		return err
@@ -60,25 +66,94 @@ func (s *authService) Login(phone, password string) (Tokens, error) {
 	user, err := s.userRepo.FindByMobile(phone)
 	if err != nil {
 		if errors.Is(err, repository.ErrUserNotFound) {
-			return Tokens{}, autherror.ErrInvalidCredentials
+			return Tokens{}, auth.ErrInvalidCredentials
 		}
 		return Tokens{}, err
 	}
 
 	if err := authkitpassword.VerifyPassword(password, user.PasswordHash); err != nil {
-		return Tokens{}, autherror.ErrInvalidCredentials
+		return Tokens{}, auth.ErrInvalidCredentials
 	}
 
-	claims := authkitjwt.Claims{
-		UserID: user.ID,
-	}
-
-	accessToken, err := s.jwtManager.Generate(claims)
+	accessToken, err := s.jwtManager.GenerateAccessToken(user.ID)
 	if err != nil {
 		return Tokens{}, fmt.Errorf("generate jwt: %w", err)
 	}
 
+	refreshToken, err := s.jwtManager.GenerateRefreshToken(user.ID)
+	if err != nil {
+		return Tokens{}, fmt.Errorf("generate refresh token: %w", err)
+	}
+
+	refresh := domain.RefreshToken{
+		Token:     refreshToken,
+		UserID:    user.ID,
+		ExpiresAt: time.Now().Add(30 * 24 * time.Hour), // 30 days
+		CreatedAt: time.Now(),
+	}
+	// Delete previous token
+	_ = s.refresh.DeleteByUserID(user.ID)
+
+	// Save refresh token to repo
+	if err := s.refresh.Create(refresh); err != nil {
+		return Tokens{}, fmt.Errorf("save refresh token: %w", err)
+	}
+
 	return Tokens{
-		AccessToken: accessToken,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
+}
+
+func (s *authService) RefreshAccessToken(refreshToken string) (Tokens, error) {
+	// 1. Verify JWT itself
+	claims, err := s.jwtManager.VerifyRefreshToken(refreshToken)
+	if err != nil {
+		return Tokens{}, auth.ErrInvalidToken
+	}
+
+	// 2. Fetch storedRefreshToken refresh token
+	storedRefreshToken, err := s.refresh.FindByUserID(claims.UserID)
+	if err != nil {
+		return Tokens{}, auth.ErrInvalidToken
+	}
+
+	// 3. Detect reuse
+	if storedRefreshToken.Token != refreshToken {
+		// possible token theft
+		_ = s.refresh.DeleteByUserID(claims.UserID)
+		return Tokens{}, auth.ErrTokenReuseDetected
+	}
+
+	// 4. Expiry check
+	if time.Now().After(storedRefreshToken.ExpiresAt) {
+		_ = s.refresh.DeleteByUserID(claims.UserID)
+		return Tokens{}, auth.ErrExpiredToken
+	}
+
+	// 5. Generate new tokens
+	newAccessToken, err := s.jwtManager.GenerateAccessToken(claims.UserID)
+	if err != nil {
+		return Tokens{}, err
+	}
+
+	newRefreshToken, err := s.jwtManager.GenerateRefreshToken(claims.UserID)
+	if err != nil {
+		return Tokens{}, err
+	}
+
+	// 6. Rotate refresh token (replace)
+	err = s.refresh.UpdateByUserID(
+		claims.UserID,
+		newRefreshToken,
+		time.Now().Add(30*24*time.Hour),
+	)
+	if err != nil {
+		return Tokens{}, err
+	}
+
+	return Tokens{
+		AccessToken:  newAccessToken,
+		RefreshToken: newRefreshToken,
 	}, nil
 }

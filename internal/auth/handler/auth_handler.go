@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	response "github.com/hardikm9850/GoChat/internal/http/validation"
+	"github.com/hardikm9850/authkit/middleware"
 	"log"
 	"net/http"
 
@@ -31,7 +32,21 @@ type loginRequest struct {
 }
 
 type loginResponse struct {
-	AccessToken string `json:"access_token"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+// refreshRequest represents refresh token request
+// swagger:model RefreshRequest
+type refreshRequest struct {
+	RefreshToken string `json:"refreshToken" binding:"required"`
+}
+
+// refreshResponse represents token response
+// swagger:model RefreshResponse
+type refreshResponse struct {
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"refreshToken"`
 }
 
 // @BasePath /api/v1
@@ -100,6 +115,74 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, loginResponse{
-		AccessToken: tokens.AccessToken,
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken,
 	})
+}
+
+// Refresh godoc
+//
+// @Summary      Refresh access token
+// @Description  Rotates refresh token and issues a new access token
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        request body refreshRequest true "Refresh token payload"
+// @Success      200 {object} refreshResponse
+// @Failure      400 {object} map[string]string "Invalid request"
+// @Failure      401 {object} map[string]string "Invalid / expired / reused refresh token"
+// @Failure      500 {object} map[string]string "Internal server error"
+// @Router       /auth/v1/refresh [post]
+func (h *AuthHandler) Refresh(c *gin.Context) {
+	var req refreshRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	tokens, err := h.service.RefreshAccessToken(req.RefreshToken)
+	if err != nil {
+		mapRefreshError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, refreshResponse{
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken,
+	})
+}
+
+// Logout godoc
+//
+// @Summary Logout user
+// @Description Invalidates the refresh token for the logged-in user
+// @Tags Auth
+// @Security BearerAuth
+// @Success 200 {object} map[string]string "logged out successfully"
+// @Failure 401 {object} map[string]string "unauthorized"
+// @Failure 500 {object} map[string]string "failed to logout"
+// @Router /auth/v1/logout [post]
+func (h *AuthHandler) Logout(c *gin.Context) {
+	userID, ok := c.Get(middleware.ContextUserIDKey)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	if err := h.service.Logout(userID.(string)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to logout"})
+		return
+	}
+
+}
+
+func mapRefreshError(c *gin.Context, err error) {
+	switch err {
+	case auth.ErrInvalidToken,
+		auth.ErrExpiredToken,
+		auth.ErrTokenReuseDetected:
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+	}
 }

@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"errors"
+	"github.com/hardikm9850/GoChat/internal/auth"
 	"github.com/hardikm9850/GoChat/internal/auth/domain"
 	"github.com/hardikm9850/GoChat/internal/auth/repository"
 	"gorm.io/gorm"
@@ -29,7 +30,7 @@ func (r *UserRepository) Create(user domain.User) error {
 	}
 	err := r.db.Create(&model).Error
 	if err != nil && isDuplicateKeyError(err) {
-		return repository.ErrUserAlreadyExists
+		return auth.ErrUserAlreadyExists
 	}
 	return nil
 }
