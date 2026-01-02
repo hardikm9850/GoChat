@@ -21,14 +21,16 @@ func New(auth service.AuthService) *AuthHandler {
 }
 
 type registerRequest struct {
-	Phone    string `json:"phone" binding:"required"`
-	Password string `json:"password" binding:"required,min=6"`
-	Name     string `json:"name" binding:"required"`
+	Phone       string `json:"phone" binding:"required"`
+	Password    string `json:"password" binding:"required,min=6"`
+	Name        string `json:"name" binding:"required"`
+	CountryCode string `json:"country_code" binding:"required"`
 }
 
 type loginRequest struct {
-	Phone    string `json:"phone" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Phone       string `json:"phone" binding:"required"`
+	Password    string `json:"password" binding:"required"`
+	CountryCode string `json:"country_code" binding:"required"`
 }
 
 type loginResponse struct {
@@ -71,7 +73,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Register(req.Phone, req.Password, req.Name); err != nil {
+	tokens, err := h.service.Register(req.CountryCode, req.Phone, req.Password, req.Name)
+	if err != nil {
 		if errors.Is(err, auth.ErrUserAlreadyExists) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
@@ -80,8 +83,9 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "User registered successfully",
+	c.JSON(http.StatusOK, loginResponse{
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken,
 	})
 }
 
@@ -104,12 +108,19 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	tokens, err := h.service.Login(req.Phone, req.Password)
+	tokens, err := h.service.Login(req.Phone, req.Password, req.CountryCode)
+
 	if err != nil {
+		log.Printf("error is %s\n", err)
+		if errors.Is(err, auth.ErrUserDoesNotExists) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "account does not exist"})
+			return
+		}
 		if errors.Is(err, auth.ErrInvalidCredentials) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 			return
 		}
+		log.Printf("error %s\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "login failed"})
 		return
 	}

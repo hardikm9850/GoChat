@@ -8,8 +8,8 @@ type Tokens struct {
 // AuthService
 // ========= Auth Contract =============
 type AuthService interface {
-	Register(phone, password, name string) error
-	Login(phone, password string) (Tokens, error)
+	Register(countryCode, phone, password, name string) (Tokens, error)
+	Login(phone, password, contryCode string) (Tokens, error)
 	RefreshAccessToken(refreshToken string) (Tokens, error)
 	Logout(id string) error
 }
