@@ -22,11 +22,12 @@ func New(db *gorm.DB) *UserRepository {
 func (r *UserRepository) Create(user domain.User) error {
 	log.Println("DB 👉 /auth/register hit")
 	model := UserModel{
-		ID:           user.ID,
-		Name:         user.Name,
-		PhoneNumber:  user.PhoneNumber,
-		PasswordHash: user.PasswordHash,
-		CreatedAt:    user.CreatedAt,
+		ID:              user.ID,
+		Name:            user.Name,
+		PhoneNumber:     user.PhoneNumber,
+		PasswordHash:    user.PasswordHash,
+		PhoneNumberHash: user.PhoneHash,
+		CreatedAt:       user.CreatedAt,
 	}
 	err := r.db.Create(&model).Error
 	if err != nil && isDuplicateKeyError(err) {
@@ -48,10 +49,11 @@ func (r *UserRepository) FindByID(id string) (domain.User, error) {
 
 	return toDomainUser(model), nil
 }
-func (r *UserRepository) FindByMobile(mobile string) (domain.User, error) {
+func (r *UserRepository) FindByMobile(mobile, countryCode string) (domain.User, error) {
 	var model UserModel
 
-	err := r.db.Where("phone_number = ?", mobile).First(&model).Error
+	err := r.db.Where("country_code = ? AND phone_number = ?", countryCode, mobile).
+		First(&model).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

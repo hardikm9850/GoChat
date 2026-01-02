@@ -7,6 +7,7 @@ type User struct {
 	PhoneNumber  string
 	Name         string
 	PasswordHash string
+	PhoneHash    string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

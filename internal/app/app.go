@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/hardikm9850/GoChat/internal/auth/repository"
 	mysql "github.com/hardikm9850/GoChat/internal/auth/repository/database"
-	"github.com/hardikm9850/GoChat/internal/chat/domain"
 	chathandler "github.com/hardikm9850/GoChat/internal/chat/handler"
 	"github.com/hardikm9850/GoChat/internal/chat/infrastructure"
 	"github.com/hardikm9850/GoChat/internal/chat/usecase"
@@ -76,13 +75,13 @@ func NewApp(cfg *config.Config) *App {
 
 	// --- Chat ---
 	conversationRepo := chatrepodb.New(gormDB)
-	conversationRepo.Create(domain.Conversation{
-		ID: "conv-123", // arbitrary conversation ID
-		Participants: []domain.UserID{
-			"df04edf7-8e4a-41f6-a042-7cea242a97e1", // user 1
-			"c0b25eb0-2a12-49eb-918a-0f29f12d418a", // user 2
-		}, //
-	})
+	//	conversationRepo.Create(domain.Conversation{
+	//		ID: "conv-123", // arbitrary conversation ID
+	//		Participants: []domain.UserID{
+	//			"df04edf7-8e4a-41f6-a042-7cea242a97e1", // user 1
+	//			"c0b25eb0-2a12-49eb-918a-0f29f12d418a", // user 2
+	//		}, //
+	//	})
 	conversationUseCase := usecase.New(conversationRepo)
 	messageRepo := messagedb.NewMessageRepo(gormDB)
 

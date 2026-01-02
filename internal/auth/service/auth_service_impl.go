@@ -6,7 +6,7 @@ import (
 	"github.com/hardikm9850/GoChat/internal/auth/domain"
 	"log"
 	"time"
-
+	internalDomain "github.com/hardikm9850/GoChat/internal/domain"
 	"github.com/google/uuid"
 	auth "github.com/hardikm9850/GoChat/internal/auth"
 	"github.com/hardikm9850/GoChat/internal/auth/repository"
@@ -36,37 +36,61 @@ func New(
 	}
 }
 
-func (s *authService) Register(phone, password, name string) error {
+func (s *authService) Register(countryCode, phone, password, name string) (Tokens, error) {
 	log.Println("Service /auth/register hit")
 
 	// check if user exists
-	_, err := s.userRepo.FindByMobile(phone)
+	_, err := s.userRepo.FindByMobile(phone, countryCode)
 	if err == nil {
-		return auth.ErrUserAlreadyExists
+		return Tokens{}, auth.ErrUserAlreadyExists
 	}
 
 	// hash pwd
 	hashedPassword, err := authkitpassword.HashPassword(password)
 	if err != nil {
-		return err
+		return Tokens{}, err
 	}
+
+	phoneHash := internalDomain.HashPhoneNumber(countryCode, phone)
 
 	user := domain.User{
 		ID:           uuid.NewString(),
 		Name:         name,
 		PhoneNumber:  phone,
 		PasswordHash: hashedPassword,
+		PhoneHash:    phoneHash,
 		CreatedAt:    time.Now(),
 	}
 
-	return s.userRepo.Create(user)
+	err = s.userRepo.Create(user)
+	if err != nil {
+		return Tokens{}, err
+	}
+	user, err = s.userRepo.FindByMobile(phone, countryCode)
+	if err != nil {
+		return Tokens{}, err
+	}
+	accessToken, err := s.jwtManager.GenerateAccessToken(user.ID)
+	if err != nil {
+		return Tokens{}, fmt.Errorf("generate jwt: %w", err)
+	}
+
+	refreshToken, err := s.jwtManager.GenerateRefreshToken(user.ID)
+	if err != nil {
+		return Tokens{}, fmt.Errorf("generate refresh token: %w", err)
+	}
+
+	return Tokens{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }
 
-func (s *authService) Login(phone, password string) (Tokens, error) {
-	user, err := s.userRepo.FindByMobile(phone)
+func (s *authService) Login(phone, password, countryCode string) (Tokens, error) {
+	user, err := s.userRepo.FindByMobile(phone, countryCode)
 	if err != nil {
 		if errors.Is(err, repository.ErrUserNotFound) {
-			return Tokens{}, auth.ErrInvalidCredentials
+			return Tokens{}, auth.ErrUserDoesNotExists
 		}
 		return Tokens{}, err
 	}

@@ -32,7 +32,7 @@ func (r *UserRepo) Create(user domain.User) error {
 	return nil
 }
 
-func (r *UserRepo) FindByMobile(mobile string) (domain.User, error) {
+func (r *UserRepo) FindByMobile(mobile, countryCode string) (domain.User, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
